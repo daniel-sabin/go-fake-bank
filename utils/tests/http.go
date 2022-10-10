@@ -1,6 +1,9 @@
 package test
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func AssertStatus(t testing.TB, got, want int) {
 	t.Helper()
@@ -12,6 +15,13 @@ func AssertStatus(t testing.TB, got, want int) {
 func AssertResponseBody(t testing.TB, got, want string) {
 	t.Helper()
 	if got != want {
+		t.Errorf("response body is wrong, got %q want %q", got, want)
+	}
+}
+
+func AssertResponseBodyContains(t testing.TB, got, want string) {
+	t.Helper()
+	if !strings.Contains(got, want) {
 		t.Errorf("response body is wrong, got %q want %q", got, want)
 	}
 }

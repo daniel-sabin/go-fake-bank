@@ -10,10 +10,12 @@ func NewServer() *Server {
 	server := new(Server)
 
 	router := http.NewServeMux()
+
 	router.Handle("/health", http.HandlerFunc(handleHealthCheck))
+	router.Handle("/swaggerui/", http.StripPrefix("/swaggerui/", http.FileServer(http.Dir("./swaggerui"))))
+
 	server.Handler = router
 
-	// server := &Server{make(chan bool)}
 	return server
 }
 
