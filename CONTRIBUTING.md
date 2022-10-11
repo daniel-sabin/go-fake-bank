@@ -1,4 +1,4 @@
-# Generate statik file  
+# Generate statik file
 
 ### Install statik
 
@@ -6,4 +6,10 @@
 
 ### Generate file
 
-    go -src=/<your-absolute-local-path>/server/swaggerui
+If you are in the root of the project :
+
+    statik -src=/<your-absolute-local-path>/server/swaggerui
+
+Otherwise :
+
+    statik -src=/<your-absolute-local-path>/server/swaggerui -dest=/<your-absolute-local-path>
