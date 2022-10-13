@@ -39,3 +39,17 @@ paths:
               schema:
                 type: string
                 example: ok
+  /applications:
+    get:
+      summary: Get all registered app
+      description: ""
+      responses:
+        '401':
+          $ref: "#/components/responses/UnauthorizedError"
+        '200':    # status code
+          description: Just OK
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+                example: ok
