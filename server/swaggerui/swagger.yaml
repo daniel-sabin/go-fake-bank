@@ -1,23 +1,41 @@
-    openapi: 3.0.0
-    info:
-      title: API demo bank
-      description: API qui emule la récuperation des comptes d'un utilisateur
-      version: 0.1.9
-    servers:
-      - url: http://localhost:8000/
-        description: Server en cours de développement (local)
-      - url: http://staging-api.example.com
-        description: Internal staging server for testing
-    paths:
-      /health:
-        get:
-          summary: Returns ok if server is alive
-          description: ""
-          responses:
-            '200':    # status code
-              description: Just OK
-              content:
-                text/plain; charset=utf-8:
-                  schema:
-                    type: string
-                    example: ok
+openapi: 3.0.0
+info:
+  title: API demo bank
+  description: API qui emule la récuperation des comptes d'un utilisateur
+  version: 0.1.9
+servers:
+  - url: http://localhost:8000/
+    description: Server en cours de développement (local)
+  - url: http://staging-api.example.com
+    description: Internal staging server for testing
+components:
+  securitySchemes:
+    ApiKeyAuth:        # arbitrary name for the security scheme
+      type: apiKey
+      in: header       # can be "header", "query" or "cookie"
+      name: X-API-KEY  # name of the header, query parameter or cookie
+  responses:
+    UnauthorizedError:
+      description: API key is missing or invalid
+      headers:
+        WWW_Authenticate:
+          schema:
+            type: string
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Returns ok if server is alive
+      description: ""
+      responses:
+        '401':
+          $ref: "#/components/responses/UnauthorizedError"
+        '200':    # status code
+          description: Just OK
+          content:
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+                example: ok
