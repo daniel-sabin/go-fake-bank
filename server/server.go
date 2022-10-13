@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"engineecore/demobank-server/server/security"
+	"engineecore/demobank-server/domain/security"
 	_ "engineecore/demobank-server/statik" // path to generated statik.go
 
 	"github.com/rakyll/statik/fs"

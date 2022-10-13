@@ -13,8 +13,8 @@ type Application struct {
 }
 
 type ApplicationStore interface {
-	save(app *Application)
-	readApplication(name string) *Application
+	Save(*Application)
+	ReadApplication(string) *Application
 }
 
 func ApplicationStoreFactory(ar ApplicationStore) func(name string) *Application {
@@ -25,7 +25,7 @@ func ApplicationStoreFactory(ar ApplicationStore) func(name string) *Application
 			ClientSecret: uuid.New(),
 		}
 
-		ar.save(&application)
+		ar.Save(&application)
 
 		return &application
 	}
@@ -33,7 +33,7 @@ func ApplicationStoreFactory(ar ApplicationStore) func(name string) *Application
 
 func ApplicationReadStoreFactory(ar ApplicationStore) func(name string) *Application {
 	return func(name string) *Application {
-		app := ar.readApplication(name)
+		app := ar.ReadApplication(name)
 
 		if app == nil {
 			fmt.Printf("no application found with name %v in store", name)

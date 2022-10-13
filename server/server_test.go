@@ -2,19 +2,28 @@ package server_test
 
 import (
 	"engineecore/demobank-server/server"
-	"engineecore/demobank-server/server/security"
 	test "engineecore/demobank-server/utils/tests"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
+type DumbStore struct {
+	Exist *bool
+}
+
+func (i *DumbStore) Save(key string) {
+}
+
+func (i *DumbStore) Exists(key string) bool {
+	return *i.Exist
+}
+
 func TestServer(t *testing.T) {
+	keyExist := true
+
 	// Before
-	server := server.NewServer(security.NewInMemoryApiKeyStore(), []string{
-		"123456",
-		"qsdlkqjsdlij",
-	})
+	server := server.NewServer(&DumbStore{Exist: &keyExist}, nil)
 
 	t.Run("health check", func(t *testing.T) {
 		// Given
@@ -42,6 +51,8 @@ func TestServer(t *testing.T) {
 	})
 
 	t.Run("Get applications is forbidden, need an api-key", func(t *testing.T) {
+		keyExist = false
+
 		// Given
 		request, _ := http.NewRequest(http.MethodGet, "/applications", nil)
 		response := httptest.NewRecorder()
@@ -53,24 +64,18 @@ func TestServer(t *testing.T) {
 	})
 
 	t.Run("Get applications allowed ", func(t *testing.T) {
+		keyExist = true
 
-		keys := []string{
-			"123456",
-			"qsdlkqjsdlij",
-		}
+		// Given
+		request, _ := http.NewRequest(http.MethodGet, "/applications", nil)
+		request.Header.Add("x-api-key", "fake-key")
+		response := httptest.NewRecorder()
+		// When
+		server.ServeHTTP(response, request)
 
-		for _, key := range keys {
-			// Given
-			request, _ := http.NewRequest(http.MethodGet, "/applications", nil)
-			request.Header.Add("x-api-key", key)
-			response := httptest.NewRecorder()
-			// When
-			server.ServeHTTP(response, request)
-
-			// Then
-			test.AssertStatus(t, response.Code, http.StatusOK)
-			test.AssertResponseBody(t, response.Body.String(), "{applications: ok}")
-		}
+		// Then
+		test.AssertStatus(t, response.Code, http.StatusOK)
+		test.AssertResponseBody(t, response.Body.String(), "{applications: ok}")
 
 	})
 

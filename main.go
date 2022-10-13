@@ -1,8 +1,8 @@
 package main
 
 import (
+	"engineecore/demobank-server/infra/repository"
 	"engineecore/demobank-server/server"
-	"engineecore/demobank-server/server/security"
 	"fmt"
 	"log"
 	"net/http"
@@ -22,5 +22,5 @@ func main() {
 		fmt.Printf("api-key-available %v\r\n", key)
 	}
 
-	log.Fatal(http.ListenAndServe(":8000", server.NewServer(security.NewInMemoryApiKeyStore(), keys)))
+	log.Fatal(http.ListenAndServe(":8000", server.NewServer(repository.NewInMemoryApiKeyStore(), keys)))
 }
