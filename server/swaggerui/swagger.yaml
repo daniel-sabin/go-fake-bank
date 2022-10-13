@@ -1,24 +1,23 @@
     openapi: 3.0.0
     info:
-      title: Sample API
-      description: Optional multiline or single-line description in [CommonMark](http://commonmark.org/help/) or HTML.
+      title: API demo bank
+      description: API qui emule la récuperation des comptes d'un utilisateur
       version: 0.1.9
     servers:
-      - url: http://api.example.com/v1
-        description: Optional server description, e.g. Main (production) server
+      - url: http://localhost:8000/
+        description: Server en cours de développement (local)
       - url: http://staging-api.example.com
-        description: Optional server description, e.g. Internal staging server for testing
+        description: Internal staging server for testing
     paths:
-      /users:
+      /health:
         get:
-          summary: Returns a list of users.
-          description: Optional extended description in CommonMark or HTML.
+          summary: Returns ok if server is alive
+          description: ""
           responses:
             '200':    # status code
-              description: A JSON array of user names
+              description: Just OK
               content:
-                application/json:
-                  schema: 
-                    type: array
-                    items: 
-                      type: string
+                text/plain; charset=utf-8:
+                  schema:
+                    type: string
+                    example: ok
