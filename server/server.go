@@ -63,7 +63,7 @@ func handleApplicationsFactory(i security.ApiKeyStore) func(w http.ResponseWrite
 func handleAccountsFactory(as accounts.AccountsStore) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
-		page := query.Get("page")
+		page := accounts.GetPageNumber(query.Get("page"))
 
 		getAccountsFor := accounts.GetAccountsFactory(as)
 		getLinksFor := accounts.GetLinksFactory(as)
@@ -71,7 +71,7 @@ func handleAccountsFactory(as accounts.AccountsStore) func(w http.ResponseWriter
 		accountsForPage := getAccountsFor(page)
 		linksForPage := getLinksFor(page)
 
-		response := viewmodel.GetResponseFor(accountsForPage, linksForPage)
+		response := viewmodel.GetAccountsResponse(accountsForPage, linksForPage)
 
 		w.Header().Add("Content-Type", "application/json; charset=utf-8")
 		w.Write(response)

@@ -22,7 +22,7 @@ type LinksResponse struct {
 	Next string `json:"next"`
 }
 
-func GetResponseFor(accounts []accounts.Account, links accounts.Links) []byte {
+func GetAccountsResponse(accounts []accounts.Account, links accounts.Links) []byte {
 	accountsForResponse := getAccountsForResponse(accounts)
 	linksForResponse := getLinksForReponse(links)
 

@@ -85,7 +85,7 @@ func TestServer(t *testing.T) {
 		// Given
 		request, _ := http.NewRequest(http.MethodGet, "/accounts", nil)
 		response := httptest.NewRecorder()
-		want := "{\"accounts\":[{\"acc_number\":\"0000001\",\"amount\":\"50\",\"currency\":\"EUR\"}"
+		want := "{\"accounts\":[{\"acc_number\":\"0000001\",\"amount\":50,\"currency\":\"EUR\"}"
 
 		// When
 		server.ServeHTTP(response, request)

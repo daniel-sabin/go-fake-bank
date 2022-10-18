@@ -31,10 +31,8 @@ func TestAccounts(t *testing.T) {
 			{Number: "0000001", Amount: 50, Currency: enum.CURRENCY_EURO},
 		}
 
-		gotForNoPage := getAccountsFor("")
-		gotForPageOne := getAccountsFor("1")
+		gotForPageOne := getAccountsFor(1)
 
-		test.AssertEquals(t, gotForNoPage, want)
 		test.AssertEquals(t, gotForPageOne, want)
 	})
 
@@ -43,7 +41,7 @@ func TestAccounts(t *testing.T) {
 			{Number: "0000002", Amount: 200, Currency: enum.CURRENCY_EURO},
 		}
 
-		got := getAccountsFor("2")
+		got := getAccountsFor(2)
 
 		test.AssertEquals(t, got, want)
 	})
@@ -51,7 +49,7 @@ func TestAccounts(t *testing.T) {
 	t.Run("get accounts response for page 3", func(t *testing.T) {
 		want := []accounts.Account{}
 
-		got := getAccountsFor("5")
+		got := getAccountsFor(5)
 
 		test.AssertEquals(t, got, want)
 	})

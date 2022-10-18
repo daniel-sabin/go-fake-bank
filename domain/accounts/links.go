@@ -7,11 +7,10 @@ type Links struct {
 	Next string
 }
 
-func GetLinksFactory(r AccountsStore) func(page string) Links {
-	return func(page string) Links {
-		pageNumber := GetPageNumber(page)
+func GetLinksFactory(r AccountsStore) func(page int) Links {
+	return func(page int) Links {
 		lastPageNumber := r.GetLastPageNumber()
-		return getLinks(pageNumber, lastPageNumber)
+		return getLinks(page, lastPageNumber)
 	}
 }
 
@@ -22,17 +21,21 @@ func getLinks(page int, lastPageNumber int) Links {
 	return Links{Self: self, Next: next}
 }
 
-func getSelfPage(currentPageNumber int) string {
-	return "/accounts?page=" + strconv.Itoa(currentPageNumber)
+func getSelfPage(currentPage int) string {
+	return formatLink(currentPage)
 }
 
-func getNextPage(currentPageNumber int, lastPageNumber int) string {
+func getNextPage(currentPage int, lastPageNumber int) string {
 	next := ""
 
-	nextPage := currentPageNumber + 1
+	nextPage := currentPage + 1
 	if nextPage <= lastPageNumber {
-		next = "/accounts?page=" + strconv.Itoa(nextPage)
+		next = formatLink(nextPage)
 	}
 
 	return next
+}
+
+func formatLink(page int) string {
+	return "/accounts?page=" + strconv.Itoa(page)
 }

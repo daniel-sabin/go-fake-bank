@@ -13,11 +13,10 @@ type Account struct {
 	Currency enum.Currency
 }
 
-func GetAccountsFactory(r AccountsStore) func(page string) []Account {
-	return func(page string) []Account {
-		pageNumber := GetPageNumber(page)
+func GetAccountsFactory(r AccountsStore) func(page int) []Account {
+	return func(page int) []Account {
 		pagesWithAccounts := r.GetPagesWithAccounts()
-		return getAccounts(pagesWithAccounts, pageNumber)
+		return getAccounts(pagesWithAccounts, page)
 	}
 }
 
