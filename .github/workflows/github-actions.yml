@@ -22,14 +22,34 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-     - name: Install SSH Key
-       uses: shimataro/ssh-key-action@v2
-       with:
-         key: ${{ secrets.SSH_KEY }} 
-         known_hosts: 'just-a-placeholder-so-we-dont-get-errors'
+    - name: Download project from git
+      uses: actions/checkout@v2
 
-     - name: Adding Known Hosts
-       run: ssh-keyscan -H ${{ secrets.IP_VPC }} >> ~/.ssh/known_hosts
+    - name: Install SSH Key
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.SSH_PRIVATE_KEY }} 
+        known_hosts: 'just-a-placeholder-so-we-dont-get-errors'
+    - name: Adding Known Hosts
+      run: ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-     - name: Deploy with scp
-       run: scp README.md daniel@${{ secrets.IP_VPC }}:README.md
+    - name: Build project
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.19'
+        check-latest: true
+        cache: true
+    - run: make build
+
+    - name: Deploy with scp
+      run: scp demobank-server daniel@${{ secrets.SSH_HOST }}:demobank-server
+
+    - name: multiple command
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: daniel
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        script: |
+          ./demobank-server --addr :9000
