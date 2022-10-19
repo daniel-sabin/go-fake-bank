@@ -3,6 +3,7 @@ package main
 import (
 	"engineecore/demobank-server/infra/repository"
 	"engineecore/demobank-server/server"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +12,8 @@ import (
 )
 
 func main() {
+	var addr = flag.String("addr", ":8000", "The addr of the application.")
+	flag.Parse()
 
 	keys := []string{
 		uuid.New().String(),
@@ -22,5 +25,5 @@ func main() {
 		fmt.Printf("api-key-available %v\r\n", key)
 	}
 
-	log.Fatal(http.ListenAndServe(":8000", server.NewServer(repository.NewInMemoryApiKeyStore(), keys)))
+	log.Fatal(http.ListenAndServe(*addr, server.NewServer(repository.NewInMemoryApiKeyStore(), keys)))
 }
