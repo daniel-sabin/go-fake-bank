@@ -6,7 +6,7 @@ info:
 servers:
   - url: http://localhost:8000/
     description: Server en cours de développement (local)
-  - url: http://staging-api.example.com
+  - url: https://dsague.fr
     description: Internal staging server for testing
 components:
   securitySchemes:
@@ -21,6 +21,23 @@ components:
         WWW_Authenticate:
           schema:
             type: string
+  schemas:
+    Account:
+      type: object
+      properties:
+        acc_number:
+          type: string
+        amount:
+          type: string
+        currency:
+          type: string
+          enum:
+            - EUR
+            - USD
+      required:
+        - acc_number
+        - type
+        - currency
 security:
   - ApiKeyAuth: []
 
@@ -53,3 +70,22 @@ paths:
               schema:
                 type: string
                 example: ok
+  /accounts:
+    get:
+      summary: Gets a user accounts.
+      responses:
+        '401':
+          $ref: "#/components/responses/UnauthorizedError"
+        '200':    # status code
+          description: Just OK
+          content:
+            application/json:
+              schema:
+                type: array
+                $ref: '#/components/schemas/Account'
+      parameters:
+        - in: query
+          name: page
+          type: integer
+          description: Accounts page.
+
