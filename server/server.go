@@ -4,7 +4,9 @@ import (
 	"log"
 	"net/http"
 
+	"engineecore/demobank-server/domain/accounts"
 	"engineecore/demobank-server/domain/security"
+	viewmodel "engineecore/demobank-server/infra/view_model"
 	_ "engineecore/demobank-server/statik" // path to generated statik.go
 
 	"github.com/rakyll/statik/fs"
@@ -21,7 +23,7 @@ func storeApiKeys(i security.ApiKeyStore, apiKeys []string) {
 	}
 }
 
-func NewServer(i security.ApiKeyStore, k []string) *Server {
+func NewServer(i security.ApiKeyStore, as accounts.AccountsStore, k []string) *Server {
 	statikFS, err := fs.New()
 	if err != nil {
 		log.Fatal(err)
@@ -35,6 +37,8 @@ func NewServer(i security.ApiKeyStore, k []string) *Server {
 	router.Handle("/health", http.HandlerFunc(handleHealthCheck))
 	router.Handle("/swaggerui/", http.StripPrefix("/swaggerui/", http.FileServer(statikFS)))
 	router.Handle("/applications", http.HandlerFunc(handleApplicationsFactory(i)))
+	router.Handle("/accounts", http.HandlerFunc(handleAccountsFactory(as)))
+
 	server.Handler = router
 
 	return server
@@ -53,5 +57,23 @@ func handleApplicationsFactory(i security.ApiKeyStore) func(w http.ResponseWrite
 		} else {
 			w.Write([]byte("{applications: ok}"))
 		}
+	}
+}
+
+func handleAccountsFactory(as accounts.AccountsStore) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query()
+		page := accounts.GetPageNumber(query.Get("page"))
+
+		getAccountsFor := accounts.GetAccountsFactory(as)
+		getLinksFor := accounts.GetLinksFactory(as)
+
+		accountsForPage := getAccountsFor(page)
+		linksForPage := getLinksFor(page)
+
+		response := viewmodel.GetAccountsResponse(accountsForPage, linksForPage)
+
+		w.Header().Add("Content-Type", "application/json; charset=utf-8")
+		w.Write(response)
 	}
 }

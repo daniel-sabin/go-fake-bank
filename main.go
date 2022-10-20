@@ -25,5 +25,8 @@ func main() {
 		fmt.Printf("api-key-available %v\r\n", key)
 	}
 
-	log.Fatal(http.ListenAndServe(*addr, server.NewServer(repository.NewInMemoryApiKeyStore(), keys)))
+	i := repository.NewInMemoryApiKeyStore()
+	accountsStore := repository.NewInMemoryAccountsStore()
+
+	log.Fatal(http.ListenAndServe(*addr, server.NewServer(i, accountsStore, keys)))
 }
