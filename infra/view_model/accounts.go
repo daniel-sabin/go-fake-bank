@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"engineecore/demobank-server/domain/accounts"
 	"engineecore/demobank-server/domain/enum"
+	"engineecore/demobank-server/domain/links"
 )
 
 type AccountsResponse struct {
@@ -22,7 +23,7 @@ type LinksResponse struct {
 	Next string `json:"next"`
 }
 
-func GetAccountsResponse(accounts []accounts.Account, links accounts.Links) []byte {
+func GetAccountsResponse(accounts []accounts.Account, links links.Links) []byte {
 	accountsForResponse := getAccountsForResponse(accounts)
 	linksForResponse := getLinksForReponse(links)
 
@@ -43,6 +44,6 @@ func getAccountsForResponse(accounts []accounts.Account) []AccountResponse {
 	return accountsForResponse
 }
 
-func getLinksForReponse(links accounts.Links) LinksResponse {
+func getLinksForReponse(links links.Links) LinksResponse {
 	return LinksResponse{Self: links.Self, Next: links.Next}
 }
