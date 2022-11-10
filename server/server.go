@@ -3,6 +3,7 @@ package server
 import (
 	"log"
 	"net/http"
+	"strconv"
 
 	"engineecore/demobank-server/domain/accounts"
 	"engineecore/demobank-server/domain/security"
@@ -63,13 +64,13 @@ func handleApplicationsFactory(i security.ApiKeyStore) func(w http.ResponseWrite
 func handleAccountsFactory(as accounts.AccountsStore) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
-		page := accounts.GetPageNumber(query.Get("page"))
+		pageFromUrl, _ := strconv.Atoi(query.Get("page"))
 
 		getAccountsFor := accounts.GetAccountsFactory(as)
-		getLinksFor := accounts.GetLinksFactory(as)
+		getLinksFor := accounts.GetAccountsLinksFactory(as)
 
-		accountsForPage := getAccountsFor(page)
-		linksForPage := getLinksFor(page)
+		accountsForPage := getAccountsFor(pageFromUrl)
+		linksForPage := getLinksFor(pageFromUrl)
 
 		response := viewmodel.GetAccountsResponse(accountsForPage, linksForPage)
 

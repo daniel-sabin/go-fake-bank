@@ -13,14 +13,22 @@ type Account struct {
 	Currency enum.Currency
 }
 
-func GetAccountsFactory(r AccountsStore) func(page int) []Account {
-	return func(page int) []Account {
+func GetAccountsFactory(r AccountsStore) func(pageFromUrl int) []Account {
+	return func(pageFromUrl int) []Account {
 		pagesWithAccounts := r.GetPagesWithAccounts()
-		return getAccounts(pagesWithAccounts, page)
+		return getAccounts(pagesWithAccounts, pageFromUrl)
 	}
 }
 
-func getAccounts(pagesWithAccounts map[int][]Account, page int) []Account {
+func getAccounts(pagesWithAccounts map[int][]Account, pageFromUrl int) []Account {
+	var page int
+
+	if pageFromUrl == 0 {
+		page = 1
+	} else {
+		page = pageFromUrl
+	}
+
 	accounts, ok := pagesWithAccounts[page]
 
 	if !ok {
