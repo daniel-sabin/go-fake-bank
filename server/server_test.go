@@ -24,8 +24,9 @@ func TestServer(t *testing.T) {
 	keyExist := true
 
 	// Before
-	accountsStore := repository.NewInMemoryAccountsStore()
-	server := server.NewServer(&DumbStore{Exist: &keyExist}, accountsStore, nil)
+	as := repository.NewInMemoryAccountsStore()
+	ts := repository.NewInMemoryTransactionsStore()
+	server := server.NewServer(&DumbStore{Exist: &keyExist}, as, ts, nil)
 
 	t.Run("health check", func(t *testing.T) {
 		// Given
@@ -81,7 +82,7 @@ func TestServer(t *testing.T) {
 
 	})
 
-	t.Run("accounts", func(t *testing.T) {
+	t.Run("Get accounts", func(t *testing.T) {
 		// Given
 		request, _ := http.NewRequest(http.MethodGet, "/accounts", nil)
 		response := httptest.NewRecorder()
@@ -92,6 +93,34 @@ func TestServer(t *testing.T) {
 
 		// Then
 		test.AssertStatus(t, response.Code, http.StatusOK)
+		test.AssertResponseBodyContains(t, response.Body.String(), want)
+	})
+
+	t.Run("Get transactions", func(t *testing.T) {
+		// Given
+		request, _ := http.NewRequest(http.MethodGet, "/accounts/0000001/transactions", nil)
+		response := httptest.NewRecorder()
+		want := "{\"transactions\":[{\"id\":1,\"label\":\"Label 1\",\"sign\":\"CDT\",\"amount\":50,\"currency\":\"EUR\"}"
+
+		// When
+		server.ServeHTTP(response, request)
+
+		// Then
+		test.AssertStatus(t, response.Code, http.StatusOK)
+		test.AssertResponseBodyContains(t, response.Body.String(), want)
+	})
+
+	t.Run("Invalid transactions URL", func(t *testing.T) {
+		// Given
+		request, _ := http.NewRequest(http.MethodGet, "/accounts/0000001", nil)
+		response := httptest.NewRecorder()
+		want := "404 page not found"
+
+		// When
+		server.ServeHTTP(response, request)
+
+		// Then
+		test.AssertStatus(t, response.Code, http.StatusNotFound)
 		test.AssertResponseBodyContains(t, response.Body.String(), want)
 	})
 }
