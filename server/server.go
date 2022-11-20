@@ -13,6 +13,8 @@ import (
 	"github.com/rakyll/statik/fs"
 )
 
+type HttpHandler func(w http.ResponseWriter, r *http.Request)
+
 type Server struct {
 	http.Handler
 }
@@ -33,12 +35,13 @@ func NewServer(i security.ApiKeyStore, as accounts.AccountsStore, k []string) *S
 	server := new(Server)
 	storeApiKeys(i, k)
 
-	router := http.NewServeMux()
+	router := new(Router)
 
 	router.Handle("/health", http.HandlerFunc(handleHealthCheck))
 	router.Handle("/swaggerui/", http.StripPrefix("/swaggerui/", http.FileServer(statikFS)))
 	router.Handle("/applications", http.HandlerFunc(handleApplicationsFactory(i)))
 	router.Handle("/accounts", http.HandlerFunc(handleAccountsFactory(as)))
+	router.HandleWithParam("/accounts/{param}/transactions", http.HandlerFunc(handleTransactionsFactory()))
 
 	server.Handler = router
 
@@ -49,7 +52,7 @@ func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ok"))
 }
 
-func handleApplicationsFactory(i security.ApiKeyStore) func(w http.ResponseWriter, r *http.Request) {
+func handleApplicationsFactory(i security.ApiKeyStore) HttpHandler {
 	return func(w http.ResponseWriter, r *http.Request) {
 		isKeyAllowed := security.IsKeyAllowedFactory(i)
 		allowed, _ := isKeyAllowed(r.Header.Get("x-api-key"))
@@ -61,7 +64,7 @@ func handleApplicationsFactory(i security.ApiKeyStore) func(w http.ResponseWrite
 	}
 }
 
-func handleAccountsFactory(as accounts.AccountsStore) func(w http.ResponseWriter, r *http.Request) {
+func handleAccountsFactory(as accounts.AccountsStore) HttpHandler {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
 		pageFromUrl, _ := strconv.Atoi(query.Get("page"))
@@ -76,5 +79,12 @@ func handleAccountsFactory(as accounts.AccountsStore) func(w http.ResponseWriter
 
 		w.Header().Add("Content-Type", "application/json; charset=utf-8")
 		w.Write(response)
+	}
+}
+
+func handleTransactionsFactory() HttpHandler {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountNumber := r.Context().Value(ParamFromUrl).(string)
+		w.Write([]byte(accountNumber))
 	}
 }

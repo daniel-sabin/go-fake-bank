@@ -94,4 +94,30 @@ func TestServer(t *testing.T) {
 		test.AssertStatus(t, response.Code, http.StatusOK)
 		test.AssertResponseBodyContains(t, response.Body.String(), want)
 	})
+
+	t.Run("get transactions for accountNumber 1", func(t *testing.T) {
+		// Given
+		request, _ := http.NewRequest(http.MethodGet, "/accounts/1/transactions", nil)
+		response := httptest.NewRecorder()
+
+		// When
+		server.ServeHTTP(response, request)
+
+		// Then
+		test.AssertStatus(t, response.Code, http.StatusOK)
+		test.AssertResponseBody(t, response.Body.String(), "1")
+	})
+
+	t.Run("get 404 if invalid transactions url", func(t *testing.T) {
+		// Given
+		request, _ := http.NewRequest(http.MethodGet, "/accounts/1/transac", nil)
+		response := httptest.NewRecorder()
+
+		// When
+		server.ServeHTTP(response, request)
+
+		// Then
+		test.AssertStatus(t, response.Code, http.StatusNotFound)
+		test.AssertResponseBody(t, response.Body.String(), "404 page not found")
+	})
 }
