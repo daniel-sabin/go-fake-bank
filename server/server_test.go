@@ -3,95 +3,107 @@ package server_test
 import (
 	"engineecore/demobank-server/infra/repository"
 	"engineecore/demobank-server/server"
-	test "engineecore/demobank-server/utils/tests"
-	"net/http"
-	"net/http/httptest"
 	"testing"
+
+	"goyave.dev/goyave/v4"
 )
 
 type DumbStore struct {
-	Exist *bool
+	Exist bool
 }
 
 func (i *DumbStore) Save(key string) {
 }
 
 func (i *DumbStore) Exists(key string) bool {
-	return *i.Exist
+	return i.Exist
+}
+
+func router(dumbStore *DumbStore) func(router *goyave.Router) {
+	accountsStore := repository.NewInMemoryAccountsStore()
+	return server.RegisterRoutes(dumbStore, accountsStore, nil)
+}
+
+type ServerTestSuite struct {
+	goyave.TestSuite
 }
 
 func TestServer(t *testing.T) {
-	keyExist := true
+	goyave.RunTest(t, new(ServerTestSuite))
+}
 
-	// Before
-	accountsStore := repository.NewInMemoryAccountsStore()
-	server := server.NewServer(&DumbStore{Exist: &keyExist}, accountsStore, nil)
-
-	t.Run("health check", func(t *testing.T) {
-		// Given
-		request, _ := http.NewRequest(http.MethodGet, "/health", nil)
-		response := httptest.NewRecorder()
-
-		// When
-		server.ServeHTTP(response, request)
-
-		// Then
-		test.AssertStatus(t, response.Code, http.StatusOK)
-		test.AssertResponseBody(t, response.Body.String(), "ok")
+func (suite *ServerTestSuite) TestHealthCheck() {
+	suite.RunServer(router(nil), func() {
+		resp, err := suite.Get("/health", nil)
+		suite.Nil(err)
+		suite.NotNil(resp)
+		if resp != nil {
+			defer resp.Body.Close()
+			suite.Equal(200, resp.StatusCode)
+			suite.Equal("ok", string(suite.GetBody(resp)))
+		}
 	})
+}
 
-	t.Run("swagger ui", func(t *testing.T) {
-		// Given
-		request, _ := http.NewRequest(http.MethodGet, "/swaggerui/", nil)
-		response := httptest.NewRecorder()
-		// When
-		server.ServeHTTP(response, request)
-
-		// Then
-		test.AssertStatus(t, response.Code, http.StatusOK)
-		test.AssertResponseBodyContains(t, response.Body.String(), "DOCTYPE")
+func (suite *ServerTestSuite) TestSwagger() {
+	suite.RunServer(router(nil), func() {
+		resp, err := suite.Get("/swaggerui/", nil)
+		suite.Nil(err)
+		suite.NotNil(resp)
+		if resp != nil {
+			defer resp.Body.Close()
+			suite.Equal(200, resp.StatusCode)
+			suite.Contains(string(suite.GetBody(resp)), "DOCTYPE")
+		}
 	})
+}
 
-	t.Run("Get applications is forbidden, need an api-key", func(t *testing.T) {
-		keyExist = false
-
-		// Given
-		request, _ := http.NewRequest(http.MethodGet, "/applications", nil)
-		response := httptest.NewRecorder()
-		// When
-		server.ServeHTTP(response, request)
-
-		// Then
-		test.AssertStatus(t, response.Code, http.StatusUnauthorized)
+func (suite *ServerTestSuite) TestForbiddenApplication() {
+	suite.RunServer(router(&DumbStore{Exist: false}), func() {
+		resp, err := suite.Get("/applications", map[string]string{"x-api-key": "fake-key"})
+		suite.Nil(err)
+		suite.NotNil(resp)
+		if resp != nil {
+			defer resp.Body.Close()
+			suite.Equal(401, resp.StatusCode)
+		}
 	})
+}
 
-	t.Run("Get applications allowed ", func(t *testing.T) {
-		keyExist = true
-
-		// Given
-		request, _ := http.NewRequest(http.MethodGet, "/applications", nil)
-		request.Header.Add("x-api-key", "fake-key")
-		response := httptest.NewRecorder()
-		// When
-		server.ServeHTTP(response, request)
-
-		// Then
-		test.AssertStatus(t, response.Code, http.StatusOK)
-		test.AssertResponseBody(t, response.Body.String(), "{applications: ok}")
-
+func (suite *ServerTestSuite) TestAllowedApplication() {
+	suite.RunServer(router(&DumbStore{Exist: true}), func() {
+		resp, err := suite.Get("/applications", map[string]string{"x-api-key": "fake-key"})
+		suite.Nil(err)
+		suite.NotNil(resp)
+		if resp != nil {
+			defer resp.Body.Close()
+			suite.Equal(200, resp.StatusCode)
+		}
 	})
+}
 
-	t.Run("accounts", func(t *testing.T) {
-		// Given
-		request, _ := http.NewRequest(http.MethodGet, "/accounts", nil)
-		response := httptest.NewRecorder()
-		want := "{\"accounts\":[{\"acc_number\":\"0000001\",\"amount\":50,\"currency\":\"EUR\"}"
+func (suite *ServerTestSuite) TestAccounts() {
+	suite.RunServer(router(nil), func() {
+		resp, err := suite.Get("/accounts", nil)
+		suite.Nil(err)
+		suite.NotNil(resp)
+		if resp != nil {
+			defer resp.Body.Close()
+			suite.Equal(200, resp.StatusCode)
+			suite.Contains(string(suite.GetBody(resp)), "{\"accounts\":[{\"acc_number\":\"0000001\",\"amount\":50,\"currency\":\"EUR\"}")
+		}
+	})
+}
 
-		// When
-		server.ServeHTTP(response, request)
-
-		// Then
-		test.AssertStatus(t, response.Code, http.StatusOK)
-		test.AssertResponseBodyContains(t, response.Body.String(), want)
+func (suite *ServerTestSuite) TestTransactions() {
+	suite.RunServer(router(nil), func() {
+		resp, err := suite.Get("/accounts/1/transactions", nil)
+		suite.Nil(err)
+		suite.NotNil(resp)
+		if resp != nil {
+			defer resp.Body.Close()
+			suite.Equal(200, resp.StatusCode)
+			suite.Equal("1", string(suite.GetBody(resp)))
+		}
 	})
 }

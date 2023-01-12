@@ -5,14 +5,14 @@ import (
 	"engineecore/demobank-server/server"
 	"flag"
 	"fmt"
-	"log"
-	"net/http"
+	"os"
 
 	"github.com/google/uuid"
+	"goyave.dev/goyave/v4"
 )
 
 func main() {
-	var addr = flag.String("addr", ":8000", "The addr of the application.")
+	//var addr = flag.String("addr", ":8000", "The addr of the application.")
 	flag.Parse()
 
 	keys := []string{
@@ -27,6 +27,9 @@ func main() {
 
 	i := repository.NewInMemoryApiKeyStore()
 	accountsStore := repository.NewInMemoryAccountsStore()
+	router := server.RegisterRoutes(i, accountsStore, keys)
 
-	log.Fatal(http.ListenAndServe(*addr, server.NewServer(i, accountsStore, keys)))
+	if err := goyave.Start(router); err != nil {
+		os.Exit(err.(*goyave.Error).ExitCode)
+	}
 }

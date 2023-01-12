@@ -1,7 +1,6 @@
 package server
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 
@@ -10,7 +9,7 @@ import (
 	viewmodel "engineecore/demobank-server/infra/view_model"
 	_ "engineecore/demobank-server/statik" // path to generated statik.go
 
-	"github.com/rakyll/statik/fs"
+	"goyave.dev/goyave/v4"
 )
 
 type Server struct {
@@ -24,35 +23,26 @@ func storeApiKeys(i security.ApiKeyStore, apiKeys []string) {
 	}
 }
 
-func NewServer(i security.ApiKeyStore, as accounts.AccountsStore, k []string) *Server {
-	statikFS, err := fs.New()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	server := new(Server)
+func RegisterRoutes(i security.ApiKeyStore, as accounts.AccountsStore, k []string) func(router *goyave.Router) {
 	storeApiKeys(i, k)
 
-	router := http.NewServeMux()
-
-	router.Handle("/health", http.HandlerFunc(handleHealthCheck))
-	router.Handle("/swaggerui/", http.StripPrefix("/swaggerui/", http.FileServer(statikFS)))
-	router.Handle("/applications", http.HandlerFunc(handleApplicationsFactory(i)))
-	router.Handle("/accounts", http.HandlerFunc(handleAccountsFactory(as)))
-
-	server.Handler = router
-
-	return server
+	return func(router *goyave.Router) {
+		router.Get("/health", handleHealthCheck)
+		router.Get("/applications", handleApplicationsFactory(i))
+		router.Get("/accounts", handleAccountsFactory(as))
+		router.Get("/accounts/{accountId}/transactions", handleTransactionsFactory())
+		router.Static("/swaggerui/", "server/swaggerui", false)
+	}
 }
 
-func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
+func handleHealthCheck(w *goyave.Response, r *goyave.Request) {
 	w.Write([]byte("ok"))
 }
 
-func handleApplicationsFactory(i security.ApiKeyStore) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func handleApplicationsFactory(i security.ApiKeyStore) func(w *goyave.Response, r *goyave.Request) {
+	return func(w *goyave.Response, r *goyave.Request) {
 		isKeyAllowed := security.IsKeyAllowedFactory(i)
-		allowed, _ := isKeyAllowed(r.Header.Get("x-api-key"))
+		allowed, _ := isKeyAllowed(r.Header().Get("x-api-key"))
 		if !allowed {
 			w.WriteHeader(http.StatusUnauthorized)
 		} else {
@@ -61,9 +51,9 @@ func handleApplicationsFactory(i security.ApiKeyStore) func(w http.ResponseWrite
 	}
 }
 
-func handleAccountsFactory(as accounts.AccountsStore) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		query := r.URL.Query()
+func handleAccountsFactory(as accounts.AccountsStore) func(w *goyave.Response, r *goyave.Request) {
+	return func(w *goyave.Response, r *goyave.Request) {
+		query := r.Request().URL.Query()
 		pageFromUrl, _ := strconv.Atoi(query.Get("page"))
 
 		getAccountsFor := accounts.GetAccountsFactory(as)
@@ -76,5 +66,12 @@ func handleAccountsFactory(as accounts.AccountsStore) func(w http.ResponseWriter
 
 		w.Header().Add("Content-Type", "application/json; charset=utf-8")
 		w.Write(response)
+	}
+}
+
+func handleTransactionsFactory() func(w *goyave.Response, r *goyave.Request) {
+	return func(w *goyave.Response, r *goyave.Request) {
+		accountNumber := r.Params["accountId"]
+		w.Write([]byte(accountNumber))
 	}
 }
