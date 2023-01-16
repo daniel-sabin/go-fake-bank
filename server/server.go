@@ -10,12 +10,9 @@ import (
 	viewmodel "engineecore/demobank-server/infra/view_model"
 	_ "engineecore/demobank-server/statik" // path to generated statik.go
 
+	"github.com/go-chi/chi/v5"
 	"github.com/rakyll/statik/fs"
 )
-
-type Server struct {
-	http.Handler
-}
 
 func storeApiKeys(i security.ApiKeyStore, apiKeys []string) {
 	store := security.ApiKeyStoreFactory(i)
@@ -24,25 +21,25 @@ func storeApiKeys(i security.ApiKeyStore, apiKeys []string) {
 	}
 }
 
-func NewServer(i security.ApiKeyStore, as accounts.AccountsStore, k []string) *Server {
+func NewServer(i security.ApiKeyStore, as accounts.AccountsStore, k []string) *chi.Mux {
 	statikFS, err := fs.New()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	server := new(Server)
 	storeApiKeys(i, k)
 
-	router := http.NewServeMux()
+	r := chi.NewRouter()
 
-	router.Handle("/health", http.HandlerFunc(handleHealthCheck))
-	router.Handle("/swaggerui/", http.StripPrefix("/swaggerui/", http.FileServer(statikFS)))
-	router.Handle("/applications", http.HandlerFunc(handleApplicationsFactory(i)))
-	router.Handle("/accounts", http.HandlerFunc(handleAccountsFactory(as)))
+	r.Get("/health", handleHealthCheck)
+	r.Handle("/swaggerui/", http.StripPrefix("/swaggerui/", http.FileServer(statikFS)))
+	r.Get("/applications", handleApplicationsFactory(i))
+	r.Route("/accounts", func(r chi.Router) {
+		r.Get("/", handleAccountsFactory(as))
+		r.Get("/{accountId}/transactions", handleTransactionsFactory())
+	})
 
-	server.Handler = router
-
-	return server
+	return r
 }
 
 func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
@@ -76,5 +73,12 @@ func handleAccountsFactory(as accounts.AccountsStore) func(w http.ResponseWriter
 
 		w.Header().Add("Content-Type", "application/json; charset=utf-8")
 		w.Write(response)
+	}
+}
+
+func handleTransactionsFactory() func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountNumber := chi.URLParam(r, "accountId")
+		w.Write([]byte(accountNumber))
 	}
 }
