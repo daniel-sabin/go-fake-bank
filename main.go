@@ -26,7 +26,8 @@ func main() {
 	}
 
 	i := repository.NewInMemoryApiKeyStore()
-	accountsStore := repository.NewInMemoryAccountsStore()
+	as := repository.NewInMemoryAccountsStore()
+	ts := repository.NewInMemoryTransactionsStore()
 
-	log.Fatal(http.ListenAndServe(*addr, server.NewServer(i, accountsStore, keys)))
+	log.Fatal(http.ListenAndServe(*addr, server.NewServer(i, as, ts, keys)))
 }
