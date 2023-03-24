@@ -32,7 +32,7 @@ func NewServer(i security.ApiKeyStore, as accounts.AccountsStore, k []string) *c
 	r := chi.NewRouter()
 
 	r.Get("/health", handleHealthCheck)
-	r.Handle("/swaggerui/", http.StripPrefix("/swaggerui/", http.FileServer(statikFS)))
+	r.Mount("/swaggerui/", http.StripPrefix("/swaggerui/", http.FileServer(statikFS)))
 	r.Get("/applications", handleApplicationsFactory(i))
 	r.Route("/accounts", func(r chi.Router) {
 		r.Get("/", handleAccountsFactory(as))
