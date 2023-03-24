@@ -10,10 +10,10 @@ servers:
     description: Internal staging server for testing
 components:
   securitySchemes:
-    ApiKeyAuth:        # arbitrary name for the security scheme
+    ApiKeyAuth: # arbitrary name for the security scheme
       type: apiKey
-      in: header       # can be "header", "query" or "cookie"
-      name: X-API-KEY  # name of the header, query parameter or cookie
+      in: header # can be "header", "query" or "cookie"
+      name: X-API-KEY # name of the header, query parameter or cookie
   responses:
     UnauthorizedError:
       description: API key is missing or invalid
@@ -38,6 +38,24 @@ components:
         - acc_number
         - type
         - currency
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        sign:
+          type: string
+          enum:
+            - CDT
+            - DBT
+        amount:
+          type: number
+        currency:
+          type: string
+          enum:
+            - EUR
 security:
   - ApiKeyAuth: []
 
@@ -45,11 +63,11 @@ paths:
   /health:
     get:
       summary: Returns ok if server is alive
-      description: ""
+      description: ''
       responses:
         '401':
-          $ref: "#/components/responses/UnauthorizedError"
-        '200':    # status code
+          $ref: '#/components/responses/UnauthorizedError'
+        '200': # status code
           description: Just OK
           content:
             text/plain; charset=utf-8:
@@ -59,11 +77,11 @@ paths:
   /applications:
     get:
       summary: Get all registered app
-      description: ""
+      description: ''
       responses:
         '401':
-          $ref: "#/components/responses/UnauthorizedError"
-        '200':    # status code
+          $ref: '#/components/responses/UnauthorizedError'
+        '200': # status code
           description: Just OK
           content:
             text/plain; charset=utf-8:
@@ -75,17 +93,60 @@ paths:
       summary: Gets a user accounts.
       responses:
         '401':
-          $ref: "#/components/responses/UnauthorizedError"
-        '200':    # status code
+          $ref: '#/components/responses/UnauthorizedError'
+        '200': # status code
           description: Just OK
           content:
             application/json:
               schema:
-                type: array
-                $ref: '#/components/schemas/Account'
+                type: object
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Account'
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                      next:
+                        type: string
       parameters:
         - in: query
           name: page
           type: integer
           description: Accounts page.
-
+  /accounts/{accountNumber}/transactions:
+    get:
+      summary: Gets account transactions.
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '200': # status code
+          description: Just OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Transaction'
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                      next:
+                        type: string
+      parameters:
+        - in: query
+          name: page
+          type: integer
+          description: Transactions page.
+        - in: path
+          name: accountNumber
+          type: string
+          description: Account number.
