@@ -39,10 +39,15 @@ func NewServer(
 
 	r.Get("/health", handleHealthCheck)
 	r.Mount("/swaggerui/", http.StripPrefix("/swaggerui/", http.FileServer(statikFS)))
-	r.Get("/applications", handleApplicationsFactory(i))
-	r.Route("/accounts", func(r chi.Router) {
-		r.Get("/", handleAccountsFactory(as))
-		r.Get("/{accountNumber}/transactions", handleTransactionsFactory(ts))
+
+	// routes protected with x-api-key
+	r.Group(func(r chi.Router) {
+		r.Use(middlewareApiKeyAllowedFactory(i))
+		r.Get("/applications", handleApplications)
+		r.Route("/accounts", func(r chi.Router) {
+			r.Get("/", handleAccountsFactory(as))
+			r.Get("/{accountNumber}/transactions", handleTransactionsFactory(ts))
+		})
 	})
 
 	return r
@@ -52,16 +57,22 @@ func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ok"))
 }
 
-func handleApplicationsFactory(i security.ApiKeyStore) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		isKeyAllowed := security.IsKeyAllowedFactory(i)
-		allowed, _ := isKeyAllowed(r.Header.Get("x-api-key"))
-		if !allowed {
-			w.WriteHeader(http.StatusUnauthorized)
-		} else {
-			w.Write([]byte("{applications: ok}"))
-		}
+func middlewareApiKeyAllowedFactory(i security.ApiKeyStore) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			isKeyAllowed := security.IsKeyAllowedFactory(i)
+			allowed, _ := isKeyAllowed(r.Header.Get("x-api-key"))
+			if !allowed {
+				w.WriteHeader(http.StatusUnauthorized)
+			} else {
+				next.ServeHTTP(w, r)
+			}
+		})
 	}
+}
+
+func handleApplications(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("{applications: ok}"))
 }
 
 func handleAccountsFactory(as accounts.AccountsStore) func(w http.ResponseWriter, r *http.Request) {
