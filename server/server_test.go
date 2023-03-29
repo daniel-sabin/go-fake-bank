@@ -1,6 +1,8 @@
 package server_test
 
 import (
+	"bytes"
+	"encoding/json"
 	"engineecore/demobank-server/infra/repository"
 	"engineecore/demobank-server/server"
 	test "engineecore/demobank-server/utils/tests"
@@ -10,23 +12,21 @@ import (
 )
 
 type DumbStore struct {
-	Exist *bool
 }
 
 func (i *DumbStore) Save(key string) {
 }
 
 func (i *DumbStore) Exists(key string) bool {
-	return *i.Exist
+	return true
 }
 
 func TestServer(t *testing.T) {
-	keyExist := true
 
 	// Before
 	as := repository.NewInMemoryAccountsStore()
 	ts := repository.NewInMemoryTransactionsStore()
-	server := server.NewServer(&DumbStore{Exist: &keyExist}, as, ts, nil)
+	server := server.NewServer(&DumbStore{}, as, ts, nil)
 
 	t.Run("health check", func(t *testing.T) {
 		// Given
@@ -53,25 +53,9 @@ func TestServer(t *testing.T) {
 		test.AssertResponseBodyContains(t, response.Body.String(), "DOCTYPE")
 	})
 
-	t.Run("Get applications is forbidden, need an api-key", func(t *testing.T) {
-		keyExist = false
-
+	t.Run("Get applications ", func(t *testing.T) {
 		// Given
 		request, _ := http.NewRequest(http.MethodGet, "/applications", nil)
-		response := httptest.NewRecorder()
-		// When
-		server.ServeHTTP(response, request)
-
-		// Then
-		test.AssertStatus(t, response.Code, http.StatusUnauthorized)
-	})
-
-	t.Run("Get applications allowed ", func(t *testing.T) {
-		keyExist = true
-
-		// Given
-		request, _ := http.NewRequest(http.MethodGet, "/applications", nil)
-		request.Header.Add("x-api-key", "fake-key")
 		response := httptest.NewRecorder()
 		// When
 		server.ServeHTTP(response, request)
@@ -79,7 +63,6 @@ func TestServer(t *testing.T) {
 		// Then
 		test.AssertStatus(t, response.Code, http.StatusOK)
 		test.AssertResponseBody(t, response.Body.String(), "{applications: ok}")
-
 	})
 
 	t.Run("accounts", func(t *testing.T) {
@@ -109,4 +92,28 @@ func TestServer(t *testing.T) {
 		test.AssertStatus(t, response.Code, http.StatusOK)
 		test.AssertResponseBodyContains(t, response.Body.String(), want)
 	})
+
+	t.Run("Create a new application - Set of client_id/client_secret", func(t *testing.T) {
+		// Given
+		mcPostBody := map[string]interface{}{
+			"question_text": "Is this a test post for MutliQuestion?",
+		}
+		body, _ := json.Marshal(mcPostBody)
+		request, _ := http.NewRequest(http.MethodPost, "/applications", bytes.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		defer request.Body.Close()
+		response := httptest.NewRecorder()
+
+		// When
+		server.ServeHTTP(response, request)
+
+		// Then
+		var m map[string]interface{}
+		json.NewDecoder(response.Body).Decode(&m)
+
+		test.AssertStatus(t, response.Code, http.StatusOK)
+		test.AssertResponseBody(t, m["question_response"].(string), "Hello world!")
+		test.AssertResponseBody(t, m["question_text"].(string), "Is this a test post for MutliQuestion?")
+	})
+
 }

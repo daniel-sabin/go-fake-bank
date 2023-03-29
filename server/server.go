@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
@@ -44,6 +45,7 @@ func NewServer(
 	r.Group(func(r chi.Router) {
 		r.Use(middlewareApiKeyAllowedFactory(i))
 		r.Get("/applications", handleApplications)
+		r.Post("/applications", handleCreateApplication)
 		r.Route("/accounts", func(r chi.Router) {
 			r.Get("/", handleAccountsFactory(as))
 			r.Get("/{accountNumber}/transactions", handleTransactionsFactory(ts))
@@ -73,6 +75,18 @@ func middlewareApiKeyAllowedFactory(i security.ApiKeyStore) func(next http.Handl
 
 func handleApplications(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("{applications: ok}"))
+}
+
+func handleCreateApplication(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	var mcPostBody map[string]interface{}
+	json.NewDecoder(r.Body).Decode(&mcPostBody)
+	mcPostBody["question_response"] = "Hello world!"
+	body, _ := json.Marshal(mcPostBody)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(body)
 }
 
 func handleAccountsFactory(as accounts.AccountsStore) func(w http.ResponseWriter, r *http.Request) {
