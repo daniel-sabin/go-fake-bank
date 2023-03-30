@@ -56,6 +56,17 @@ components:
           type: string
           enum:
             - EUR
+    Client:
+      type: object
+      properties:
+        client_name:
+          type: string
+        client_id:
+          type: string
+        client_secret:
+          type: string
+      required:
+        - client_name
 security:
   - ApiKeyAuth: []
 
@@ -88,6 +99,32 @@ paths:
               schema:
                 type: string
                 example: ok
+    post:
+      summary: Create your application
+      description: ''
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                client_name:
+                  type: string
+            example:
+              client_name: Fluffy_application
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '200': # status code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+              example:
+                client_name: Fluffy_application
+                client_id: ad563b92-e894-4114-a20c-2a00a97def26
+                client_secret: c616a3ef-ac13-4398-af14-98fab5001534
   /accounts:
     get:
       summary: Gets a user accounts.

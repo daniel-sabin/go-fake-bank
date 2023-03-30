@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"engineecore/demobank-server/domain/accounts"
+	"engineecore/demobank-server/domain/ports"
 	"engineecore/demobank-server/domain/security"
 	"engineecore/demobank-server/domain/transactions"
 	viewmodel "engineecore/demobank-server/infra/view_model"
@@ -27,6 +28,7 @@ func NewServer(
 	i security.ApiKeyStore,
 	as accounts.AccountsStore,
 	ts transactions.TransactionsStore,
+	cs ports.ClientsStore,
 	k []string,
 ) *chi.Mux {
 	statikFS, err := fs.New()
@@ -45,18 +47,51 @@ func NewServer(
 	r.Group(func(r chi.Router) {
 		r.Use(middlewareApiKeyAllowedFactory(i))
 		r.Get("/applications", handleApplications)
-		r.Post("/applications", handleCreateApplication)
-		r.Route("/accounts", func(r chi.Router) {
-			r.Get("/", handleAccountsFactory(as))
-			r.Get("/{accountNumber}/transactions", handleTransactionsFactory(ts))
+		r.Post("/applications", handleCreateApplicationsFactory(cs))
+		r.Post("/token", handleToken)
+		r.Group(func(r chi.Router) {
+			r.Use(middlewareTokenAllowedFactory())
+			r.Route("/accounts", func(r chi.Router) {
+				r.Get("/", handleAccountsFactory(as))
+				r.Get("/{accountNumber}/transactions", handleTransactionsFactory(ts))
+			})
 		})
 	})
 
 	return r
 }
 
+func handleToken(w http.ResponseWriter, r *http.Request) {
+
+	// Recuperer clientId:Secret dans le header Basic uath
+	// Valider que api-key / id/secret sont ok
+	// retourner un token qui est store pour une durée de vie courte
+
+	// {
+	// 	"access_token": "J86XVRYSNFCFI233KXDL0Q",
+	// 	"expires_in": 7200,
+	// 	"scope": "read",
+	// 	"token_type": "Bearer"
+	//   }
+
+	r.Header.Get("x-api-key")
+	w.Write([]byte("ok"))
+}
+
 func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ok"))
+}
+
+func middlewareTokenAllowedFactory() func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("token") != "foo" {
+				w.WriteHeader(http.StatusUnauthorized)
+			} else {
+				next.ServeHTTP(w, r)
+			}
+		})
+	}
 }
 
 func middlewareApiKeyAllowedFactory(i security.ApiKeyStore) func(next http.Handler) http.Handler {
@@ -77,16 +112,20 @@ func handleApplications(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("{applications: ok}"))
 }
 
-func handleCreateApplication(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
+func handleCreateApplicationsFactory(cs ports.ClientsStore) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
 
-	var mcPostBody map[string]interface{}
-	json.NewDecoder(r.Body).Decode(&mcPostBody)
-	mcPostBody["question_response"] = "Hello world!"
-	body, _ := json.Marshal(mcPostBody)
+		var mcPostBody map[string]interface{}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(body)
+		json.NewDecoder(r.Body).Decode(&mcPostBody)
+		client := cs.Client(mcPostBody["client_name"].(string))
+
+		body, _ := json.Marshal(client)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(body)
+	}
 }
 
 func handleAccountsFactory(as accounts.AccountsStore) func(w http.ResponseWriter, r *http.Request) {

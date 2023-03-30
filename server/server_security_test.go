@@ -14,7 +14,11 @@ func TestServerSecurity(t *testing.T) {
 	ks := repository.NewInMemoryApiKeyStore()
 	as := repository.NewInMemoryAccountsStore()
 	ts := repository.NewInMemoryTransactionsStore()
-	server := server.NewServer(ks, as, ts, []string{"fake-api-key"})
+	cs := repository.NewInMemoryClientsStore(func() string {
+		return ""
+	})
+
+	server := server.NewServer(ks, as, ts, cs, []string{"fake-api-key"})
 
 	resources := [...]string{
 		"/applications",

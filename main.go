@@ -11,13 +11,18 @@ import (
 	"github.com/google/uuid"
 )
 
+func uuidGenerator() string {
+	id := uuid.New()
+	return id.String()
+}
+
 func main() {
 	var addr = flag.String("addr", ":8000", "The addr of the application.")
 	flag.Parse()
 
 	keys := []string{
-		uuid.New().String(),
-		uuid.New().String(),
+		uuidGenerator(),
+		uuidGenerator(),
 	}
 
 	// Display for user at started
@@ -28,6 +33,7 @@ func main() {
 	i := repository.NewInMemoryApiKeyStore()
 	as := repository.NewInMemoryAccountsStore()
 	ts := repository.NewInMemoryTransactionsStore()
+	cs := repository.NewInMemoryClientsStore(uuidGenerator)
 
-	log.Fatal(http.ListenAndServe(*addr, server.NewServer(i, as, ts, keys)))
+	log.Fatal(http.ListenAndServe(*addr, server.NewServer(i, as, ts, cs, keys)))
 }

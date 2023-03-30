@@ -2,6 +2,7 @@ package server_test
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"engineecore/demobank-server/infra/repository"
 	"engineecore/demobank-server/server"
@@ -26,7 +27,10 @@ func TestServer(t *testing.T) {
 	// Before
 	as := repository.NewInMemoryAccountsStore()
 	ts := repository.NewInMemoryTransactionsStore()
-	server := server.NewServer(&DumbStore{}, as, ts, nil)
+	cs := repository.NewInMemoryClientsStore(func() string {
+		return "azerty"
+	})
+	server := server.NewServer(&DumbStore{}, as, ts, cs, nil)
 
 	t.Run("health check", func(t *testing.T) {
 		// Given
@@ -96,7 +100,7 @@ func TestServer(t *testing.T) {
 	t.Run("Create a new application - Set of client_id/client_secret", func(t *testing.T) {
 		// Given
 		mcPostBody := map[string]interface{}{
-			"question_text": "Is this a test post for MutliQuestion?",
+			"client_name": "My application name",
 		}
 		body, _ := json.Marshal(mcPostBody)
 		request, _ := http.NewRequest(http.MethodPost, "/applications", bytes.NewReader(body))
@@ -112,8 +116,18 @@ func TestServer(t *testing.T) {
 		json.NewDecoder(response.Body).Decode(&m)
 
 		test.AssertStatus(t, response.Code, http.StatusOK)
-		test.AssertResponseBody(t, m["question_response"].(string), "Hello world!")
-		test.AssertResponseBody(t, m["question_text"].(string), "Is this a test post for MutliQuestion?")
+		test.AssertResponseBody(t, m["client_name"].(string), "My application name")
+		test.AssertResponseBody(t, m["client_id"].(string), "azerty")
+		test.AssertResponseBody(t, m["client_secret"].(string), "azerty")
+	})
+
+	t.Run("basic auth", func(t *testing.T) {
+		auth := "username" + ":" + "password"
+		base64.StdEncoding.EncodeToString([]byte(auth))
+
+		dec, _ := base64.StdEncoding.DecodeString("dXNlcm5hbWU6cGFzc3dvcmQ=")
+
+		t.Errorf(string(dec))
 	})
 
 }
